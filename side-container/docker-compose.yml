@@ -1,0 +1,43 @@
+version: '3.3'
+services:
+  datadog-agent:
+    image: datadog/agent:latest
+    env_file:
+    - docker.env
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+    - /proc/:/host/proc/:ro
+    - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+    ports:
+    - 127.0.0.1:8126:8126/tcp
+    environment:
+    - DD_APM_ENABLED=true
+    - DD_APM_NON_LOCAL_TRAFFIC=true
+    - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+    - DD_AC_EXCLUDE=name:datadog-agent
+  bad-boggle-solver:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    environment:
+    - DD_AGENT_HOST=datadog-agent
+    - DD_SERVICE=bad-boggle-solver
+    - DD_ENV=staging
+    - DD_VERSION=1.0
+    depends_on:
+    - datadog-agent
+  ddprof-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.ddprof
+    environment:
+    - DD_AGENT_HOST=datadog-agent
+    - DD_SERVICE=ddprof-agent
+    - DD_ENV=staging
+    depends_on:
+    - datadog-agent
+    cap_add:
+    - CAP_PERFMON
+    pid: "host"
+    # Privileged container will be able to profile everything running on the host
+    # privileged: true
